@@ -1,0 +1,105 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+    }
+    dependencies {
+        classpath "net.fabricmc:fabric-loom:${loom_version}"
+    }
+}
+
+group = 'dev.openlyrics'
+version = mod_version
+
+subprojects {
+    def mc = name
+    def yarn = rootProject.property("yarn_${mc}")
+    def fapi = rootProject.property("fapi_${mc}")
+    def loader = rootProject.property('loader_version')
+    def modVer = rootProject.property('mod_version')
+
+    apply plugin: 'fabric-loom'
+
+    group = 'dev.openlyrics'
+    version = "${modVer}+${mc}"
+
+    repositories {
+        mavenCentral()
+        maven { url = 'https://maven.fabricmc.net/' }
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${mc}"
+        mappings "net.fabricmc:yarn:${yarn}:v2"
+        modImplementation "net.fabricmc.fabric-api:fabric-api:${fapi}"
+        modImplementation "net.fabricmc:fabric-loader:${loader}"
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(Integer.parseInt(rootProject.property('java_version').toString()))
+        }
+    }
+
+    sourceSets.main {
+        java {
+            srcDirs = [rootProject.file('dev')]
+        }
+        resources {
+            srcDirs = [rootProject.projectDir]
+            include 'assets/**'
+            include 'fabric.mod.json'
+            include 'openlyrics.*'
+            include 'META-INF/**'
+        }
+    }
+
+    processResources {
+        inputs.property 'version', project.version
+        inputs.property 'minecraft', mc
+        filteringCharset = 'UTF-8'
+        filesMatching('fabric.mod.json') {
+            expand version: project.version, minecraft_version: mc
+        }
+    }
+
+    tasks.named('jar', org.gradle.jvm.tasks.Jar) {
+        archiveBaseName.set('openlyrics')
+        archiveVersion.set("${modVer}-${mc}")
+    }
+
+    remapJar {
+        archiveBaseName.set('openlyrics')
+        archiveVersion.set("${modVer}-${mc}")
+    }
+}
+
+def remapJars = subprojects.collect { it.tasks.named('remapJar') }
+
+tasks.register('collectJars', Copy) {
+    group = 'build'
+    description = 'Copy each Minecraft version jar into build/libs'
+    dependsOn remapJars
+    from subprojects.collect { it.layout.buildDirectory.dir('libs') }
+    into layout.buildDirectory.dir('libs')
+    include 'openlyrics-*.jar'
+    exclude '*-dev.jar', '*-sources.jar'
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.register('build') {
+    group = 'build'
+    description = 'Build one openlyrics jar per Minecraft version'
+    dependsOn collectJars
+}
+
+tasks.register('compileJava') {
+    group = 'build'
+    dependsOn subprojects.collect { it.tasks.named('compileJava') }
+}
+
+tasks.register('clean', Delete) {
+    group = 'build'
+    delete layout.buildDirectory
+    dependsOn subprojects.collect { it.tasks.named('clean') }
+}

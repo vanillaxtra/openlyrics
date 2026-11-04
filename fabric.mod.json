@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "openlyrics",
+  "version": "${version}",
+  "name": "openlyrics",
+  "description": "Lyrics in the sky, custom skies, and a small HUD.",
+  "authors": [
+    "notauthorised"
+  ],
+  "license": "MIT",
+  "icon": "assets/openlyrics/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.openlyrics.OpenLyrics"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.3",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "accessWidener": "openlyrics.accesswidener",
+  "mixins": [
+    "openlyrics.mixins.json"
+  ]
+}

@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'openlyrics'
+
+def versions = providers.gradleProperty('mc_versions').orElse('1.21.11').get().split(',').collect { it.trim() }.findAll { it }
+versions.each { v ->
+    include v
+    def dir = new File(settingsDir, "versions/${v}")
+    dir.mkdirs()
+    project(":${v}").projectDir = dir
+}
