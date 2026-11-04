@@ -1,5 +1,6 @@
 package dev.openlyrics.lyrics;
 
+import dev.openlyrics.OpenLyrics;
 import java.util.Collections;
 import java.util.List;
 
@@ -46,7 +47,16 @@ public final class NowPlaying {
    }
 
    public long progressNow(int offsetMs) {
+      return this.progressNow(offsetMs, true);
+   }
+
+   public long progressNow(int offsetMs, boolean includeLead) {
       long p = this.progressMs + (this.playing ? System.currentTimeMillis() - this.fetchedAt : 0L) + offsetMs;
+      // look-ahead so words land with the vocal
+      if (includeLead && this.trackId != null) {
+         p += OpenLyrics.cfg().lyricsLeadMs;
+      }
+
       if (this.durationMs > 0L) {
          p = Math.min(p, this.durationMs);
       }

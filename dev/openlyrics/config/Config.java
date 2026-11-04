@@ -66,6 +66,7 @@ public class Config {
    public int lyricsAnim = 0;
    public boolean lyricsUnderground = false;
    public int lyricsOffsetMs = 0;
+   public int lyricsLeadMs = 150;
    public boolean fxBeatPulse = true;
    public boolean fxSongIntro = true;
    public boolean translate = false;
@@ -141,6 +142,7 @@ public class Config {
       this.skyBreath = Math.max(0.0F, Math.min(2.0F, this.skyBreath));
       this.skyPalette = Math.max(-1, Math.min(WorldSky.PALETTES.length - 1, this.skyPalette));
       this.lyricsOffsetMs = Math.max(-5000, Math.min(5000, this.lyricsOffsetMs));
+      this.lyricsLeadMs = Math.max(0, Math.min(1000, this.lyricsLeadMs));
       this.lyricsStyle = Math.floorMod(this.lyricsStyle, 2);
       if (this.spotifyClientId == null) {
          this.spotifyClientId = "";

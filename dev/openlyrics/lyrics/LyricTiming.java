@@ -143,7 +143,9 @@ public final class LyricTiming {
                   total = words.length;
                }
 
-               double dur = gap * 0.92;
+               // cap spread to sung duration so instrumental gaps don't crawl
+               double cap = Math.min(6000.0, total / sps * 1000.0 + 600.0);
+               double dur = Math.min(gap * 0.92, cap);
                double acc = 0.0;
                long prev = start - 1L;
 

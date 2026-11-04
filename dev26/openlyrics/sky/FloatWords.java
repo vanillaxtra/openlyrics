@@ -365,7 +365,7 @@ public final class FloatWords {
 
                w = (FloatWords.Word)var29.next();
                age = now - w.born;
-               a = clamp01((float)age / 140.0F) * c.lyricsOpacity;
+               a = c.lyricsOpacity; // appear at timestamp, no fade-in lag
                bright = 1.0F;
                current = w.gone == 0L;
                if (current) {

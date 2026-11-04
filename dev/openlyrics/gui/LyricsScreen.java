@@ -542,8 +542,8 @@ public class LyricsScreen extends Screen {
             float wp = np.wordPosition(li, prog);
             int sung = wp < 0.0F ? 0 : (int)Math.floor(wp) + 1;
 
-            float la = Anim.clamp(this.pool.toFrom("ln" + li + track, 0.0, 1.0));
-            int yy = lyY + Math.round((1.0F - la) * 8.0F);
+            float la = 1.0F; // appear at timestamp, no fade-in lag
+            int yy = lyY;
             float xx = x0;
             int lines = 0;
             int space = this.tw(" ", LyricsScreen.T.TITLE);
@@ -934,6 +934,15 @@ public class LyricsScreen extends Screen {
       this.gEnd();
       this.gStart(t("ui.lyrics.timing"), null);
       this.offsetRow();
+      this.pickerRow(
+         "lead",
+         t("opt.lyricslead"),
+         t("ui.lyrics.lead.sub"),
+         c.lyricsLeadMs + " ms",
+         -1,
+         () -> c.lyricsLeadMs = Math.max(0, c.lyricsLeadMs - 25),
+         () -> c.lyricsLeadMs = Math.min(1000, c.lyricsLeadMs + 25)
+      );
       this.toggleRow("beat", t("extras.beat"), t("ui.lyrics.beat.sub"), c.fxBeatPulse, v -> c.fxBeatPulse = v);
       this.toggleRow("intro", t("extras.intro"), t("ui.lyrics.intro.sub"), c.fxSongIntro, v -> c.fxSongIntro = v);
       this.gEnd();

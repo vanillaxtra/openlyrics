@@ -355,7 +355,9 @@ public final class SpotifyClient {
             return;
          }
 
+         long t0 = System.currentTimeMillis();
          Http.Response r = Http.get("https://api.spotify.com/v1/me/player/currently-playing", Map.of("Authorization", "Bearer " + tokens.access));
+         long t1 = System.currentTimeMillis();
          if (r.code() == 401) {
             if (refresh()) {
                poll();
@@ -406,7 +408,8 @@ public final class SpotifyClient {
          long duration = item.has("duration_ms") ? item.get("duration_ms").getAsLong() : 0L;
          long progress = o.has("progress_ms") && !o.get("progress_ms").isJsonNull() ? o.get("progress_ms").getAsLong() : 0L;
          boolean playing = o.has("is_playing") && o.get("is_playing").getAsBoolean();
-         publish(id, title, artists.toString(), firstArtist, album, duration, progress, playing);
+         // midpoint: progress_ms was sampled on the server during the round trip
+         publish(id, title, artists.toString(), firstArtist, album, duration, progress, playing, (t0 + t1) / 2L, t1 - t0);
          if (!id.equals(coverKey)) {
             coverKey = id;
             String url = null;
@@ -435,20 +438,53 @@ public final class SpotifyClient {
    }
 
    static void publish(String id, String title, String artists, String firstArtist, String album, long duration, long progress, boolean playing) {
+      publish(id, title, artists, firstArtist, album, duration, progress, playing, System.currentTimeMillis(), -1L);
+   }
+
+   static void publish(String id, String title, String artists, String firstArtist, String album, long duration, long progress, boolean playing, long fetchedAt) {
+      publish(id, title, artists, firstArtist, album, duration, progress, playing, fetchedAt, -1L);
+   }
+
+   static void publish(
+      String id, String title, String artists, String firstArtist, String album, long duration, long progress, boolean playing, long fetchedAt, long rttMs
+   ) {
       NowPlaying prev = now;
       boolean changed = !id.equals(prev.trackId);
-      if (!changed && playing && prev.playing) {
-         long predicted = prev.progressNow(0);
-         if (Math.abs(progress - predicted) < 60L) {
-            progress = predicted;
+      boolean playToggled = playing != prev.playing;
+      long nowMs = System.currentTimeMillis();
+      long err = 0L;
+      long corr = 0L;
+      boolean snap = changed || playToggled;
+      if (!snap && playing && prev.playing) {
+         long predicted = prev.progressMs + (nowMs - prev.fetchedAt);
+         long sample = progress + (nowMs - fetchedAt);
+         if (duration > 0L) {
+            predicted = Math.min(predicted, duration);
+            sample = Math.min(sample, duration);
          }
+
+         predicted = Math.max(0L, predicted);
+         sample = Math.max(0L, sample);
+         err = sample - predicted;
+         if (Math.abs(err) < 1500L) {
+            // 30% toward the new reading so poll jitter doesn't jump the highlight
+            corr = err * 3L / 10L;
+            progress = predicted + corr;
+            fetchedAt = nowMs;
+         } else {
+            snap = true;
+         }
+      }
+
+      if (OpenLyrics.LOG.isDebugEnabled()) {
+         OpenLyrics.LOG.debug("lyrics clock rtt={}ms err={}ms corr={}ms snap={}", rttMs, err, corr, snap);
       }
 
       List<NowPlaying.Line> lines = changed ? LyricsProvider.cached(id) : prev.lines;
       NowPlaying.LyricsState ls = changed
          ? (lines == null ? NowPlaying.LyricsState.LOADING : (lines.isEmpty() ? NowPlaying.LyricsState.NOT_FOUND : NowPlaying.LyricsState.SYNCED))
          : prev.lyricsState;
-      now = new NowPlaying(id, title, artists, duration, playing, progress, System.currentTimeMillis(), lines, ls);
+      now = new NowPlaying(id, title, artists, duration, playing, progress, fetchedAt, lines, ls);
       if (changed) {
          applySongOffset(id, ls != NowPlaying.LyricsState.LOADING);
          coverFallback(title, firstArtist);
@@ -511,7 +547,7 @@ public final class SpotifyClient {
       NowPlaying np = now();
       Config c = OpenLyrics.cfg();
       if (np.hasTrack() && !np.lines.isEmpty()) {
-         long raw = np.progressNow(0);
+         long raw = np.progressNow(0, false);
          long cur = raw + c.lyricsOffsetMs;
          long best = Long.MAX_VALUE;
          long bestT = 0L;
