@@ -75,9 +75,9 @@ public final class FloatWords {
                   lastChunk = -1;
                }
 
-               long progress = np.progressNow(c.lyricsOffsetMs + 150);
+               long progress = np.progressNow(c.lyricsOffsetMs);
                int li = np.lineIndex(progress);
-               if (li >= 0 && li < np.lines.size() && progress <= np.lineEnd(li) + 450L) {
+               if (li >= 0 && li < np.lines.size() && progress <= np.lineEnd(li) + 50L) {
                   live = update(mc, c, np, li, progress, cam, pt, now);
                }
             }
@@ -342,7 +342,7 @@ public final class FloatWords {
          boolean glow = c.lyricsGlow && AutoPerf.allow(3);
          int q = AutoPerf.quality();
          int glowN = q <= 0 ? 0 : (q == 1 ? 2 : 3);
-         TextLayerType mode = TextLayerType.NORMAL;
+         TextLayerType mode = c.lyricsUnderground ? TextLayerType.SEE_THROUGH : TextLayerType.NORMAL;
          double yr = Math.toRadians(mc.player.getYaw(pt));
          double pr = Math.toRadians(mc.player.getPitch(pt));
          double vfx = -Math.sin(yr) * Math.cos(pr);

@@ -2,8 +2,6 @@ package dev.openlyrics.sky;
 
 import dev.openlyrics.OpenLyrics;
 import dev.openlyrics.config.Config;
-import dev.openlyrics.cosmetic.Accessories;
-import dev.openlyrics.cosmetic.DeathFx;
 import dev.openlyrics.cosmetic.PhoneMenu;
 import dev.openlyrics.hud.Anim;
 import dev.openlyrics.hud.Gfx;
@@ -302,8 +300,6 @@ public final class WorldSky {
             drawPlayerFx(mc, c, buffers, camV, pt, t, p);
          }
 
-         Accessories.render(mc, buffers, base, camV, pt);
-         DeathFx.render(mc, buffers, base, camV, pt);
          PhoneMenu.render(mc, buffers, base, pt);
          base = null;
       }
@@ -1779,9 +1775,9 @@ public final class WorldSky {
       int li = -1;
       long prog = 0L;
       if (np.hasTrack() && np.lyricsState == NowPlaying.LyricsState.SYNCED && np.playing) {
-         prog = np.progressNow(c.lyricsOffsetMs + 280);
+         prog = np.progressNow(c.lyricsOffsetMs);
          li = np.lineIndex(prog);
-         if (li >= 0 && prog > np.lineEnd(li) + 400L) {
+         if (li >= 0 && prog > np.lineEnd(li) + 50L) {
             li = -1;
          }
       }
@@ -1921,15 +1917,14 @@ public final class WorldSky {
                   int ww = Gfx.w(word, Gfx.LYRICS);
                   boolean on = s.exitAt != 0L || i <= cur;
                   if (on && s.shown[i] == 0L) {
-                     // already-due words skip the enter anim so a late line doesn't dump the phrase
-                     s.shown[i] = i < cur ? now - 500L : now;
+                     s.shown[i] = now;
                   }
 
                   if (!on) {
                      lx += ww + space;
                   } else {
-                     float raw = Anim.since(s.shown[i], 450L);
-                     float e = Anim.outCubic(raw);
+                     float raw = i < cur ? 1.0F : Anim.since(s.shown[i], 80L);
+                     float e = 1.0F;
                      float a = e * lineA;
                      boolean current = s.exitAt == 0L && i == cur;
                      Matrix4f m = WM.set(m0);
@@ -1986,10 +1981,14 @@ public final class WorldSky {
       return COMP.computeIfAbsent(w, k -> Gfx.comp(k, Gfx.LYRICS));
    }
 
+   private static TextLayerType lyricMode() {
+      return OpenLyrics.cfg().lyricsUnderground ? TextLayerType.SEE_THROUGH : TextLayerType.NORMAL;
+   }
+
    private static void word(TextRenderer font, VertexConsumerProvider buffers, Matrix4f m, String w, float x, float y, float z, int rgb, float a) {
       if (!(a <= 0.03F)) {
          Matrix4f mm = SCR.set(m).translate(x, y, z);
-         font.draw(lyricComp(w), 0.0F, 0.0F, Gfx.argbRaw(rgb, a), false, mm, buffers, TextLayerType.NORMAL, 0, 15728880);
+         font.draw(lyricComp(w), 0.0F, 0.0F, Gfx.argbRaw(rgb, a), false, mm, buffers, lyricMode(), 0, 15728880);
       }
    }
 

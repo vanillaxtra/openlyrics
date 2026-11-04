@@ -1409,6 +1409,7 @@ public class LyricsScreen extends Screen {
       Config c = c();
       c.lyricsOffsetMs = Math.max(-5000, Math.min(5000, c.lyricsOffsetMs + d));
       this.offBox.setValue(Integer.toString(c.lyricsOffsetMs));
+      SpotifyClient.saveSongOffset();
    }
 
    private void commitOffset() {
@@ -1427,6 +1428,7 @@ public class LyricsScreen extends Screen {
 
       c().lyricsOffsetMs = Math.max(-5000, Math.min(5000, v));
       this.offBox.setValue(Integer.toString(c().lyricsOffsetMs));
+      SpotifyClient.saveSongOffset();
       OpenLyrics.saveConfig();
    }
 

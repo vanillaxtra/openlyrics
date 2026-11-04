@@ -36,13 +36,8 @@ public class Config {
    public boolean fxSkyMusic = true;
    public float skySpeed = 1.0F;
    public int skyPalette = -1;
-   public int hat = 0;
-   public boolean hatGlow = true;
-   public int crosshair = 0;
    public int trail = 0;
    public boolean aura = false;
-   public int deathFx = 1;
-   public boolean deathOthers = false;
    public boolean beatGlow = false;
    public boolean skyShuffle = false;
    public float skyPattern = 1.0F;
@@ -100,7 +95,6 @@ public class Config {
    public int styleVersion = 0;
 
    public void clamp() {
-      this.deathFx = Math.max(0, Math.min(3, this.deathFx));
       if (this.styleVersion < 2 && this.spotifyClientId != null && !this.spotifyClientId.isBlank()) {
          this.spotifyMode = 1;
       }
@@ -127,7 +121,7 @@ public class Config {
       this.spotifyMode = Math.max(0, Math.min(1, this.spotifyMode));
       this.rgbAccent = false;
       int fonts = Gfx.FONT_IDS.length;
-      this.uiFont = Math.max(0, Math.min(fonts, this.uiFont));
+      this.uiFont = Math.max(0, Math.min(fonts - 1, this.uiFont));
       this.lyricsFont = Math.max(0, Math.min(fonts - 1, this.lyricsFont));
       this.sky = Math.max(-1, Math.min(SkyPreset.values().length - 1, this.sky));
       this.skyStrength = Math.max(0.1F, Math.min(1.0F, this.skyStrength));

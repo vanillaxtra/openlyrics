@@ -68,8 +68,7 @@ public final class NowPlaying {
    public long lineEnd(int idx) {
       if (idx >= 0 && idx < this.lines.size()) {
          long start = this.lines.get(idx).timeMs();
-         long next = idx + 1 < this.lines.size() ? this.lines.get(idx + 1).timeMs() : start + 5000L;
-         return Math.min(next, start + 7000L);
+         return idx + 1 < this.lines.size() ? this.lines.get(idx + 1).timeMs() : start + 8000L;
       } else {
          return 0L;
       }

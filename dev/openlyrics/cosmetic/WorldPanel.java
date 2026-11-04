@@ -62,7 +62,6 @@ final class WorldPanel {
    private final Map<String, Float> hov = new HashMap<>();
    private int page;
    private int skyPage;
-   private int hatPage;
    private final long born = System.currentTimeMillis();
    private long closing = -1L;
    private long pageTime = 0L;
@@ -493,51 +492,25 @@ final class WorldPanel {
    }
 
    private void style(Config cf, float a) {
-      String[] hats = Accessories.HATS;
-      int per = 6;
-      int pages = (hats.length + per - 1) / per;
-      this.hatPage = Math.floorMod(this.hatPage, pages);
-      this.text(tr("hat"), 206.0F, 45.0F, 0.62F, 16777215, 0.55F * a);
-
-      for (int i = 0; i < per; i++) {
-         int idx = this.hatPage * per + i;
-         if (idx >= hats.length) {
-            break;
-         }
-
-         this.option(
-            "hat" + idx,
-            206.0F + i % 2 * 82,
-            54 + i / 2 * 18,
-            78.0F,
-            15.0F,
-            Text.translatable("openlyrics.ui.hat." + hats[idx]).getString(),
-            cf.hat == idx,
-            () -> cf.hat = idx,
-            a
-         );
-      }
-
-      this.pager("ht", 108.0F, this.hatPage, pages, d -> this.hatPage += d, a);
-      this.text(tr("death"), 206.0F, 125.0F, 0.62F, 16777215, 0.55F * a);
+      this.text(tr("trail"), 206.0F, 45.0F, 0.62F, 16777215, 0.55F * a);
 
       for (int i = 0; i < 4; i++) {
          int k = i;
          this.option(
-            "de" + i,
+            "tr" + i,
             206.0F + i % 2 * 82,
-            134 + i / 2 * 18,
+            54 + i / 2 * 18,
             78.0F,
             15.0F,
-            Text.translatable("openlyrics.ui.death." + i).getString(),
-            cf.deathFx == i,
-            () -> cf.deathFx = k,
+            Text.translatable("openlyrics.ui.trail." + i).getString(),
+            cf.trail == i,
+            () -> cf.trail = k,
             a
          );
       }
 
-      this.toggle2("aur", 206.0F, 174.0F, 78.0F, tr("aura"), cf.aura, () -> cf.aura = !cf.aura, a);
-      this.toggle2("hgl", 288.0F, 174.0F, 78.0F, tr("hatglow"), cf.hatGlow, () -> cf.hatGlow = !cf.hatGlow, a);
+      this.toggle2("aur", 206.0F, 100.0F, 78.0F, tr("aura"), cf.aura, () -> cf.aura = !cf.aura, a);
+      this.toggle2("bgl", 288.0F, 100.0F, 78.0F, tr("beatglow"), cf.beatGlow, () -> cf.beatGlow = !cf.beatGlow, a);
    }
 
    private void more(MinecraftClient mc, Config cf, float a) {

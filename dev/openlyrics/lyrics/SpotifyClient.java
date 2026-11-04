@@ -439,9 +439,8 @@ public final class SpotifyClient {
       boolean changed = !id.equals(prev.trackId);
       if (!changed && playing && prev.playing) {
          long predicted = prev.progressNow(0);
-         long diff = progress - predicted;
-         if (Math.abs(diff) < 1500L) {
-            progress = predicted + diff / 4L;
+         if (Math.abs(progress - predicted) < 60L) {
+            progress = predicted;
          }
       }
 
@@ -451,6 +450,7 @@ public final class SpotifyClient {
          : prev.lyricsState;
       now = new NowPlaying(id, title, artists, duration, playing, progress, System.currentTimeMillis(), lines, ls);
       if (changed) {
+         applySongOffset(id, ls != NowPlaying.LyricsState.LOADING);
          coverFallback(title, firstArtist);
          MinecraftClient.getInstance().execute(() -> {
             Island.notify("♪ " + title, true);
@@ -470,6 +470,7 @@ public final class SpotifyClient {
                   if (id.equals(cur.trackId)) {
                      now = cur.withLyrics(fetched, fetched == null ? NowPlaying.LyricsState.NOT_FOUND : NowPlaying.LyricsState.SYNCED);
                      if (fetched != null) {
+                        applySongOffset(id, true);
                         Translator.prefetchUpcoming(fetched, cur.progressNow(0));
                      }
                   }
@@ -486,6 +487,24 @@ public final class SpotifyClient {
 
    static void publishNothing() {
       now = NowPlaying.EMPTY;
+   }
+
+   private static void applySongOffset(String id, boolean lyricsReady) {
+      Config c = OpenLyrics.cfg();
+      if (Offsets.has(id)) {
+         c.lyricsOffsetMs = Offsets.get(id, 0);
+      } else if (lyricsReady) {
+         c.lyricsOffsetMs = Math.max(-5000, Math.min(5000, LyricsProvider.cachedOffset(id)));
+      } else {
+         c.lyricsOffsetMs = 0;
+      }
+   }
+
+   public static void saveSongOffset() {
+      NowPlaying np = now();
+      if (np.hasTrack()) {
+         Offsets.put(np.trackId, OpenLyrics.cfg().lyricsOffsetMs);
+      }
    }
 
    public static void syncHere() {
@@ -508,6 +527,7 @@ public final class SpotifyClient {
          }
 
          c.lyricsOffsetMs = (int)Math.max(-5000L, Math.min(5000L, bestT - raw));
+         saveSongOffset();
          OpenLyrics.saveConfig();
          Island.notify(Fx.t("openlyrics.media.synced", (c.lyricsOffsetMs > 0 ? "+" : "") + c.lyricsOffsetMs), true);
       } else {

@@ -2,8 +2,6 @@ package dev.openlyrics.gui;
 
 import dev.openlyrics.OpenLyrics;
 import dev.openlyrics.config.Config;
-import dev.openlyrics.cosmetic.Accessories;
-import dev.openlyrics.cosmetic.DeathFx;
 import dev.openlyrics.cosmetic.PhoneMenu;
 import dev.openlyrics.hud.Anim;
 import dev.openlyrics.hud.Cover;
@@ -540,19 +538,9 @@ public class LyricsScreen extends Screen {
          int li = np.lineIndex(prog);
          if (li >= 0 && li < np.lines.size() && !np.lines.get(li).text().isBlank()) {
             NowPlaying.Line ln = np.lines.get(li);
-            long end = li + 1 < np.lines.size() ? np.lines.get(li + 1).timeMs() : ln.timeMs() + 4000L;
-            float frac = Anim.clamp((float)(prog - ln.timeMs()) / (float)Math.max(400L, Math.min(end - ln.timeMs(), 6000L) - 200L));
             String[] words = ln.text().split(" ");
-            int sung = (int)Math.ceil(frac * words.length);
-            if (ln.wordTimes() != null && ln.wordTimes().length == words.length) {
-               sung = 0;
-
-               for (long wt : ln.wordTimes()) {
-                  if (wt <= prog) {
-                     sung++;
-                  }
-               }
-            }
+            float wp = np.wordPosition(li, prog);
+            int sung = wp < 0.0F ? 0 : (int)Math.floor(wp) + 1;
 
             float la = Anim.clamp(this.pool.toFrom("ln" + li + track, 0.0, 1.0));
             int yy = lyY + Math.round((1.0F - la) * 8.0F);
@@ -627,7 +615,7 @@ public class LyricsScreen extends Screen {
       return switch (p) {
          case SKY -> Icons.Icon.SKY;
          case LYRICS -> Icons.Icon.TEXT;
-         case STYLE -> Icons.Icon.HAT;
+         case STYLE -> Icons.Icon.CHECK;
          case SPOTIFY -> Icons.Icon.SPOTIFY;
          case DISPLAY -> Icons.Icon.DISPLAY;
          case MENU -> Icons.Icon.SETTINGS;
@@ -966,24 +954,6 @@ public class LyricsScreen extends Screen {
 
    private void style() {
       Config c = c();
-      this.label(t("ui.style.hat"), null);
-      this.hatGrid();
-      this.note(t("ui.style.hat.note"));
-      this.gStart(t("ui.style.hatopts"), null);
-      this.toggleRow("hglow", t("ui.style.hatglow"), t("ui.style.hatglow.sub"), c.hatGlow, v -> c.hatGlow = v);
-      this.gEnd();
-      this.gStart(t("ui.style.crosshair"), null);
-      String[] cr = new String[]{t("ui.cross.0"), t("ui.cross.1"), t("ui.cross.2"), t("ui.cross.3"), t("ui.cross.4")};
-      this.pickerRow(
-         "cross",
-         t("ui.style.crosshair"),
-         t("ui.style.crosshair.sub"),
-         cr[Math.floorMod(c.crosshair, cr.length)],
-         -1,
-         () -> c.crosshair = Math.floorMod(c.crosshair - 1, cr.length),
-         () -> c.crosshair = Math.floorMod(c.crosshair + 1, cr.length)
-      );
-      this.gEnd();
       this.gStart(t("ui.style.effects"), null);
       String[] tr = new String[]{t("ui.trail.0"), t("ui.trail.1"), t("ui.trail.2"), t("ui.trail.3")};
       this.pickerRow(
@@ -998,118 +968,6 @@ public class LyricsScreen extends Screen {
       this.toggleRow("aura", t("ui.style.aura"), t("ui.style.aura.sub"), c.aura, v -> c.aura = v);
       this.toggleRow("bglow", t("ui.style.beatglow"), t("ui.style.beatglow.sub"), c.beatGlow, v -> c.beatGlow = v);
       this.gEnd();
-      this.gStart(t("ui.style.death"), null);
-      String[] de = new String[4];
-
-      for (int i = 0; i < de.length; i++) {
-         de[i] = t("ui.death." + i);
-      }
-
-      this.pickerRow(
-         "death",
-         t("ui.style.death"),
-         t("ui.style.death.sub"),
-         de[Math.floorMod(c.deathFx, de.length)],
-         -1,
-         () -> c.deathFx = Math.floorMod(c.deathFx - 1, de.length),
-         () -> c.deathFx = Math.floorMod(c.deathFx + 1, de.length)
-      );
-      if (c.deathFx > 0) {
-         this.toggleRow("dothers", t("ui.style.deathothers"), t("ui.style.deathothers.sub"), c.deathOthers, v -> c.deathOthers = v);
-         this.linkRow(t("ui.style.deathtest"), t("ui.style.deathtest.sub"), () -> {
-            this.close();
-            DeathFx.test();
-         });
-      }
-
-      this.gEnd();
-   }
-
-   private void hatGrid() {
-      Config c = c();
-      String[] hats = Accessories.HATS;
-      int n = 3;
-      int gap = 8;
-      int cw = (this.vw - gap * (n - 1)) / n;
-      int ch = Math.round(cw * 0.625F);
-      int rows = (hats.length + n - 1) / n;
-
-      for (int r = 0; r < rows; r++) {
-         int y0 = this.rowStart(ch + 28);
-         if (y0 != Integer.MIN_VALUE) {
-            for (int k = 0; k < n; k++) {
-               int i = r * n + k;
-               if (i >= hats.length) {
-                  break;
-               }
-
-               int x = this.vx + k * (cw + gap);
-               int y = y0 + 2;
-               boolean on = c.hat == i;
-               float hv = this.hover(x, y, cw, ch + 16, "hat" + i);
-               float sv = this.pool.to("hatsel" + i, on ? 1.0 : 0.0);
-               float clickPop = 1.0F - Anim.outCubic(Anim.since(this.pressed.getOrDefault("hat" + i, 0L), 300L));
-               float sc = this.spring("hatsc" + i, 1.0F + 0.05F * hv) - 0.05F * clickPop;
-               this.gfx.getMatrices().pushMatrix();
-               this.gfx.getMatrices().translate(x + cw / 2.0F, y + ch / 2.0F);
-               this.gfx.getMatrices().scale(sc, sc);
-               this.gfx.getMatrices().translate(-(x + cw / 2.0F), -(y + ch / 2.0F));
-               if (sv > 0.01F) {
-                  float ring = 2.0F + 2.0F * (1.0F - Anim.outBack(sv));
-                  Gfx.aaRound(this.gfx, x - ring, y - ring, cw + ring * 2.0F, ch + ring * 2.0F, 9.0F + ring, 16777215, sv);
-               }
-
-               Gfx.aaRound(this.gfx, x, y, cw, ch, 9.0F, Gfx.lerpColor(1710623, 2236968, hv), 1.0F);
-               if (i == 0) {
-                  Icons.draw(this.gfx, Icons.Icon.CLOSE, x + cw / 2.0F, y + ch / 2.0F, 10.0F, Gfx.lerpColor(5000276, 15658737, Math.max(hv, sv)), 1.0F);
-               } else {
-                  float bob = (float)Math.sin(System.currentTimeMillis() / 400.0 + i) * 1.5F * Math.max(hv, sv);
-                  Identifier tex = Identifier.of(OpenLyrics.MOD_ID, "textures/gui/hats/" + hats[i] + ".png");
-
-                  int dw = cw - 4;
-                  int dh = ch - 4;
-                  try {
-                     this.gfx
-                        .drawTexture(
-                           RenderPipelines.GUI_TEXTURED,
-                           tex,
-                           x + 2,
-                           Math.round(y + 2 + bob),
-                           0.0F,
-                           0.0F,
-                           dw,
-                           dh,
-                           256,
-                           160,
-                           Gfx.argb(16777215, 1.0F)
-                        );
-                  } catch (Throwable var22) {
-                     OpenLyrics.LOG.debug("hat icon missing: {}", tex, var22);
-                  }
-
-                  Gfx.cornerCut(this.gfx, x, y, cw, ch, 9.0F, Gfx.lerpColor(1710623, 2236968, hv), 1.0F);
-               }
-
-               this.gfx.getMatrices().popMatrix();
-               this.txt(
-                  this.ell(t("ui.hat." + hats[i]), cw, LyricsScreen.T.S),
-                  x,
-                  y + ch + 6,
-                  Gfx.lerpColor(Gfx.lerpColor(8618892, 13158606, hv), 15658737, sv),
-                  1.0F,
-                  on ? LyricsScreen.T.B : LyricsScreen.T.S
-               );
-               this.hit(x, y, cw, ch + 16, () -> {
-                  this.pressed.put("hat" + i, System.currentTimeMillis());
-                  c.hat = i;
-                  Fx.sound(Fx.Sfx.CLICK);
-                  OpenLyrics.saveConfig();
-               });
-            }
-         }
-
-         this.rowEnd();
-      }
    }
 
    private void spotify() {
@@ -1551,6 +1409,7 @@ public class LyricsScreen extends Screen {
       Config c = c();
       c.lyricsOffsetMs = Math.max(-5000, Math.min(5000, c.lyricsOffsetMs + d));
       this.offBox.setText(Integer.toString(c.lyricsOffsetMs));
+      SpotifyClient.saveSongOffset();
    }
 
    private void commitOffset() {
@@ -1569,6 +1428,7 @@ public class LyricsScreen extends Screen {
 
       c().lyricsOffsetMs = Math.max(-5000, Math.min(5000, v));
       this.offBox.setText(Integer.toString(c().lyricsOffsetMs));
+      SpotifyClient.saveSongOffset();
       OpenLyrics.saveConfig();
    }
 

@@ -47,7 +47,8 @@ public final class Gfx {
       "orbitron",
       "bebasneue",
       "pacifico",
-      "caveat"
+      "caveat",
+      "mojangles"
    };
    public static final String[] FONT_NAMES = new String[]{
       "Poppins",
@@ -72,7 +73,7 @@ public final class Gfx {
       "Bebas Neue",
       "Pacifico",
       "Caveat",
-      "Minecraft"
+      "Mojangles"
    };
    private static final StyleSpriteSource[][] FD = new StyleSpriteSource[FONT_IDS.length][3];
    private static Gfx.Role cur;
@@ -605,9 +606,12 @@ public final class Gfx {
    static {
       String[] kinds = new String[]{"_ui", "_bold", "_lyrics"};
 
+      StyleSpriteSource mojang = new Font(Identifier.of("minecraft", "default"));
       for (int i = 0; i < FONT_IDS.length; i++) {
          for (int k = 0; k < 3; k++) {
-            FD[i][k] = new Font(Identifier.of(OpenLyrics.MOD_ID, FONT_IDS[i] + kinds[k]));
+            FD[i][k] = FONT_IDS[i].equals("mojangles")
+               ? mojang
+               : new Font(Identifier.of(OpenLyrics.MOD_ID, FONT_IDS[i] + kinds[k]));
          }
       }
 

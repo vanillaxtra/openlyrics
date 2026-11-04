@@ -3,6 +3,7 @@ package dev.openlyrics;
 import dev.openlyrics.compat.Mc;
 import dev.openlyrics.config.Config;
 import dev.openlyrics.config.Storage;
+import dev.openlyrics.gui.LyricsScreen;
 import dev.openlyrics.cosmetic.PhoneMenu;
 import dev.openlyrics.hud.BeatGlow;
 import dev.openlyrics.hud.GlassHotbar;
@@ -64,7 +65,7 @@ public final class OpenLyrics implements ClientModInitializer {
       keyFav = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.fav", Mc.keyType(), 78, cat));
       keyClip = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.clip", Mc.keyType(), 299, cat));
       keyProfile = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.profile", Mc.keyType(), 297, cat));
-      keySync = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.sync", Mc.keyType(), 82, cat));
+      keySync = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.sync", Mc.keyType(), -1, cat));
       keyLyrics = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.openlyrics.lyrics", Mc.keyType(), 76, cat));
       HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath(MOD_ID, "sky"), SkyRenderer::render);
       HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "island"), Island::render);
@@ -102,7 +103,9 @@ public final class OpenLyrics implements ClientModInitializer {
       }
 
       while (keySync.consumeClick()) {
-         SpotifyClient.syncHere();
+         if (Mc.screen(mc) instanceof LyricsScreen) {
+            SpotifyClient.syncHere();
+         }
       }
 
       while (keyFav.consumeClick()) {

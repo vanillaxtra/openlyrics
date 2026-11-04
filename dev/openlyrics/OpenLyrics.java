@@ -2,10 +2,9 @@ package dev.openlyrics;
 
 import dev.openlyrics.config.Config;
 import dev.openlyrics.config.Storage;
-import dev.openlyrics.cosmetic.DeathFx;
+import dev.openlyrics.gui.LyricsScreen;
 import dev.openlyrics.cosmetic.PhoneMenu;
 import dev.openlyrics.hud.BeatGlow;
-import dev.openlyrics.hud.Crosshair;
 import dev.openlyrics.hud.GlassHotbar;
 import dev.openlyrics.hud.Island;
 import dev.openlyrics.hud.StartupIntro;
@@ -22,8 +21,6 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.MinecraftClient;
@@ -69,20 +66,15 @@ public final class OpenLyrics implements ClientModInitializer {
       keyFav = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.fav", Type.KEYSYM, 78, cat));
       keyClip = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.clip", Type.KEYSYM, 299, cat));
       keyProfile = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.profile", Type.KEYSYM, 297, cat));
-      keySync = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.sync", Type.KEYSYM, 82, cat));
+      keySync = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.sync", Type.KEYSYM, -1, cat));
       keyLyrics = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.openlyrics.lyrics", Type.KEYSYM, 76, cat));
       HudElementRegistry.addFirst(Identifier.of(MOD_ID, "sky"), SkyRenderer::render);
       HudElementRegistry.addLast(Identifier.of(MOD_ID, "island"), Island::render);
       HudElementRegistry.replaceElement(VanillaHudElements.HOTBAR, GlassHotbar::wrap);
-      HudElementRegistry.replaceElement(VanillaHudElements.CROSSHAIR, Crosshair::wrap);
       HudElementRegistry.addLast(Identifier.of(MOD_ID, "beatglow"), BeatGlow::render);
       WorldRenderEvents.AFTER_ENTITIES.register(WorldSky::render);
       SpotifyClient.init();
       StartupIntro.register();
-      AttackEntityCallback.EVENT.register((AttackEntityCallback)(player, level, hand, entity, hit) -> {
-         DeathFx.onAttack(entity);
-         return ActionResult.PASS;
-      });
       ClientTickEvents.END_CLIENT_TICK.register(this::tick);
       ClientTickEvents.START_CLIENT_TICK.register(PhoneMenu::startTick);
       LOG.info("openlyrics");
@@ -91,7 +83,6 @@ public final class OpenLyrics implements ClientModInitializer {
    private void tick(MinecraftClient mc) {
       AutoPerf.tick(mc);
       PhoneMenu.tick(mc);
-      DeathFx.tick(mc);
       SkyRenderer.tick(mc);
 
       while (keyMenu.wasPressed()) {
@@ -113,7 +104,9 @@ public final class OpenLyrics implements ClientModInitializer {
       }
 
       while (keySync.wasPressed()) {
-         SpotifyClient.syncHere();
+         if (mc.currentScreen instanceof LyricsScreen) {
+            SpotifyClient.syncHere();
+         }
       }
 
       while (keyFav.wasPressed()) {

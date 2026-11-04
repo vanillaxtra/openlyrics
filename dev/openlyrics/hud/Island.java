@@ -18,8 +18,6 @@ public final class Island {
    private static final DateTimeFormatter HM = DateTimeFormatter.ofPattern("HH:mm");
    private static final Island.Spring W = new Island.Spring(60.0F, 170.0F, 19.0F);
    private static final Island.Spring H = new Island.Spring(14.0F, 170.0F, 19.0F);
-   private static final Island.Spring HL_X = new Island.Spring(0.0F, 260.0F, 30.0F);
-   private static final Island.Spring HL_W = new Island.Spring(0.0F, 260.0F, 30.0F);
    private static final Island.Spring SCROLL = new Island.Spring(0.0F, 90.0F, 18.0F);
    private static final Island.Spring SHOW = new Island.Spring(0.0F, 120.0F, 20.0F);
    private static String note = null;
@@ -73,10 +71,10 @@ public final class Island {
       boolean noteActive = note != null && now - noteTime < 2400L;
       NowPlaying np = SpotifyClient.now();
       boolean hasSong = c.lyricsIsland && np.hasTrack();
-      long prog = np.progressNow(c.lyricsOffsetMs + 120);
+      long prog = np.progressNow(c.lyricsOffsetMs);
       int li = hasSong && np.lyricsState == NowPlaying.LyricsState.SYNCED && np.playing ? np.lineIndex(prog) : -1;
       NowPlaying.Line line = li >= 0 ? np.lines.get(li) : null;
-      boolean hasLine = line != null && !line.text().isBlank() && prog <= np.lineEnd(li) + 400L;
+      boolean hasLine = line != null && !line.text().isBlank() && prog <= np.lineEnd(li) + 50L;
       Island.Kind kind;
       String text;
       String key;
@@ -175,19 +173,10 @@ public final class Island {
             Gfx.text(g, mc.getCurrentFps() + " fps", rx, midY - 4, 10326968, 0.85F, true);
          }
 
-         float fx = cx - w / 2.0F;
-         float fh = h;
-         float fr = h / 2.0F;
-         if (AutoPerf.allow(2)) {
-            for (int k = 3; k >= 1; k--) {
-               Gfx.aaRound(g, fx - k, top - k + 1.5F, w + k * 2, fh + k * 2, fr + k, 0, 0.05F);
-            }
-         }
-
-         Gfx.aaRound(g, fx - 0.75F, top - 0.75F, w + 1.5F, fh + 1.5F, fr + 0.75F, 12167664, 0.38F);
-         Gfx.aaRound(g, fx, top, w, fh, fr, 1380895, 0.94F);
+         Gfx.aaRound(g, px - 1, top - 1, pw + 2, ph + 2, r + 1, 15658737, 0.7F);
+         Gfx.aaRound(g, px, top, pw, ph, r, 1052688, 1.0F);
          g.enableScissor(px + 2, top, px + pw - 2, top + ph);
-         float e = Anim.outCubic(Anim.since(switchTime, 380L));
+         float e = kind == Island.Kind.LYRIC ? 1.0F : Anim.outCubic(Anim.since(switchTime, 380L));
          if (e < 1.0F && prevKind != Island.Kind.IDLE && !prevText.isEmpty()) {
             float oa = show * (1.0F - e);
             Gfx.alpha = oa * 0.5F;
@@ -300,25 +289,21 @@ public final class Island {
       }
 
       int full = x - space;
-      int a0 = Math.max(0, Math.min(words.length - 1, cw - 1));
-      int a1 = Math.max(0, Math.min(words.length - 1, cw));
-      int curX = cw >= 0 ? wx[a0] : 0;
-      int curW = cw >= 0 ? wx[a1] + ww[a1] - wx[a0] : 0;
-      float sx = full > tw ? Math.max(0.0F, Math.min((float)(full - tw), wx[a1] + ww[a1] / 2.0F - tw * 0.55F)) : 0.0F;
+      boolean on = cw >= 0 && cw < words.length;
+      int curX = on ? wx[cw] : 0;
+      int curW = on ? ww[cw] : 0;
+      float sx = full > tw ? Math.max(0.0F, Math.min((float)(full - tw), curX + curW / 2.0F - tw * 0.55F)) : 0.0F;
       if (landHighlight) {
          landHighlight = false;
-         HL_X.snap(curX);
-         HL_W.snap(curW);
          SCROLL.snap(sx);
       }
       float scroll = SCROLL.update(sx, dt);
-      float hx = HL_X.update(curX, dt);
-      float hw = HL_W.update(curW, dt);
       int base = tx - Math.round(scroll);
       int ty = midY - 4;
       g.enableScissor(tx - 2, top, tx + tw + 2, top + ph);
-      if (cw >= 0 && cw < words.length) {
-         Gfx.aaRound(g, base + hx - 3.0F, top + 3, hw + 6.0F, ph - 6, 3.5F, acc, 0.85F);
+      if (on) {
+         float pad = Math.min(1.5F, space * 0.4F);
+         Gfx.aaRound(g, base + curX - pad, top + 4, curW + pad * 2.0F, ph - 8, 2.5F, acc, 1.0F);
       }
 
       for (int i = 0; i < words.length; i++) {

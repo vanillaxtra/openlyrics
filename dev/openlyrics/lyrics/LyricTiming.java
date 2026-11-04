@@ -52,7 +52,7 @@ public final class LyricTiming {
    }
 
    private static long nextStart(List<NowPlaying.Line> lines, int i) {
-      return i + 1 < lines.size() ? lines.get(i + 1).timeMs() : lines.get(i).timeMs() + 5000L;
+      return i + 1 < lines.size() ? lines.get(i + 1).timeMs() : lines.get(i).timeMs() + 8000L;
    }
 
    private static LyricTiming build(List<NowPlaying.Line> lines) {
@@ -132,35 +132,23 @@ public final class LyricTiming {
                ws[ix] = (long[])lx.wordTimes().clone();
             } else {
                long start = lx.timeMs();
-               long gap = Math.min(nextStart(lines, ix) - start, 7000L);
+               long gap = Math.max(300L, nextStart(lines, ix) - start);
                float total = 0.0F;
 
                for (String w : words) {
                   total += weight(w);
                }
 
-               double dur = Math.min(gap * 0.92, Math.max(300.0, total / sps * 1000.0));
-               double acc = 0.0;
-               double grid = 0.0;
-               if (useGrid) {
-                  double perWord = dur / words.length;
-                  grid = perWord < bestBeat / 2.0 * 0.75 ? bestBeat / 4.0 : bestBeat / 2.0;
+               if (total <= 0.0F) {
+                  total = words.length;
                }
 
+               double dur = gap * 0.92;
+               double acc = 0.0;
                long prev = start - 1L;
 
                for (int k = 0; k < words.length; k++) {
-                  double t = start + acc / total * dur;
-                  if (k == 0) {
-                     t = start;
-                  } else if (grid > 0.0) {
-                     double rel = t - bestPhase;
-                     double snapped = bestPhase + Math.round(rel / grid) * grid;
-                     if (Math.abs(snapped - t) < grid * 0.6) {
-                        t = snapped;
-                     }
-                  }
-
+                  double t = k == 0 ? start : start + acc / total * dur;
                   long ti = Math.max(prev + 40L, Math.round(t));
                   ti = Math.min(ti, start + (long)(gap * 0.97));
                   ws[ix][k] = ti;
