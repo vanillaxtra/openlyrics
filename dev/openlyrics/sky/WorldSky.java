@@ -6,6 +6,7 @@ import dev.openlyrics.cosmetic.PhoneMenu;
 import dev.openlyrics.hud.Anim;
 import dev.openlyrics.hud.Gfx;
 import dev.openlyrics.hud.Theme;
+import dev.openlyrics.lyrics.LyricTiming;
 import dev.openlyrics.lyrics.NowPlaying;
 import dev.openlyrics.lyrics.SpotifyClient;
 import dev.openlyrics.util.AutoPerf;
@@ -1794,7 +1795,9 @@ public final class WorldSky {
          activeTrack = String.valueOf(np.trackId);
          if (li >= 0 && !np.lines.get(li).text().isBlank()) {
             NowPlaying.Line want = np.lines.get(li);
-            active = primed != null && primedIdx == li && primed.line == want ? primed : new WorldSky.SkyLine(want, camYaw, skyEl(), dpp);
+            active = primed != null && primedIdx == li && primed.line == want
+               ? primed
+               : new WorldSky.SkyLine(want, camYaw, skyEl(), dpp, LyricTiming.of(np.lines), li);
          }
          primed = null;
          primedIdx = -1;
@@ -1803,7 +1806,7 @@ public final class WorldSky {
       if (li >= 0 && li + 1 < np.lines.size()) {
          NowPlaying.Line nxt = np.lines.get(li + 1);
          if (!nxt.text().isBlank() && prog + 900L >= nxt.timeMs() && (primed == null || primedIdx != li + 1)) {
-            primed = new WorldSky.SkyLine(nxt, camYaw, skyEl(), dpp);
+            primed = new WorldSky.SkyLine(nxt, camYaw, skyEl(), dpp, LyricTiming.of(np.lines), li + 1);
             primedIdx = li + 1;
          }
       }
@@ -1815,11 +1818,11 @@ public final class WorldSky {
       }
 
       for (WorldSky.SkyLine s : exiting) {
-         drawLine(mc, c, buffers, s, color, -1.0F, now, dt, dpp);
+         drawLine(mc, c, buffers, s, color, -1.0F, Long.MAX_VALUE, now, dt, dpp);
       }
 
       if (active != null) {
-         drawLine(mc, c, buffers, active, color, np.wordPosition(li, prog), now, dt, dpp);
+         drawLine(mc, c, buffers, active, color, np.wordPosition(li, prog), prog, now, dt, dpp);
       }
    }
 
@@ -1827,7 +1830,9 @@ public final class WorldSky {
       return ((a - b) % 360.0 + 540.0) % 360.0 - 180.0;
    }
 
-   private static void drawLine(MinecraftClient mc, Config c, VertexConsumerProvider buffers, WorldSky.SkyLine s, int color, float wp, long now, float dt, double dpp) {
+   private static void drawLine(
+      MinecraftClient mc, Config c, VertexConsumerProvider buffers, WorldSky.SkyLine s, int color, float wp, long prog, long now, float dt, double dpp
+   ) {
       if (c.lyricsFollow && !c.lyricsViewLock && s.exitAt == 0L) {
          double dAz = angDiff(camYaw, s.baseAz);
          double kh = 1.0 - Math.exp(-3.0 * dt);
@@ -1854,8 +1859,14 @@ public final class WorldSky {
          float beat = c.fxBeatPulse ? npB.beatPulse(npB.progressNow(c.lyricsOffsetMs)) : 0.0F;
          int glowCol = c.lyricsGlowColor < 0 ? color : LYRIC_COLORS[Math.floorMod(c.lyricsGlowColor, LYRIC_COLORS.length)];
 
+         int chi = 0;
+         int pre = c.lyricsChunkPreRollMs;
          for (WorldSky.Chunk ch : s.chunks) {
-            if (s.exitAt != 0L || ch.from <= cur) {
+            boolean chunkOn = s.exitAt != 0L || prog + pre >= ch.startMs;
+            if (chunkOn) {
+               if (s.exitAt == 0L && ch.from < s.shown.length && s.shown[ch.from] == 0L && OpenLyrics.LOG.isDebugEnabled()) {
+                  OpenLyrics.LOG.debug("lyrics chunk i={} start={} prog={} delta={}", chi, ch.startMs, prog, prog - ch.startMs);
+               }
                float kk = k * ch.size;
                double az = Math.toRadians(s.baseAz + ch.offAz);
                double el = Math.toRadians(s.baseEl + ch.offEl + Anim.outCubic(exit) * 3.0F);
@@ -1915,7 +1926,7 @@ public final class WorldSky {
                for (int i = ch.from; i < ch.to; i++) {
                   String word = words[i];
                   int ww = Gfx.w(word, Gfx.LYRICS);
-                  boolean on = s.exitAt != 0L || i <= cur;
+                  boolean on = true;
                   if (on && s.shown[i] == 0L) {
                      s.shown[i] = now;
                   }
@@ -1967,6 +1978,8 @@ public final class WorldSky {
                   }
                }
             }
+
+            chi++;
          }
       }
    }
@@ -1995,6 +2008,7 @@ public final class WorldSky {
    private static final class Chunk {
       int from;
       int to;
+      long startMs;
       int widthPx;
       double offAz;
       double offEl;
@@ -2011,7 +2025,7 @@ public final class WorldSky {
       double baseEl;
       long exitAt = 0L;
 
-      SkyLine(NowPlaying.Line l, double az, double el, double degPerPx) {
+      SkyLine(NowPlaying.Line l, double az, double el, double degPerPx, LyricTiming timing, int lineIdx) {
          this.line = l;
          this.shown = new long[l.words().length];
          this.baseAz = az;
@@ -2030,6 +2044,17 @@ public final class WorldSky {
             WorldSky.Chunk c = new WorldSky.Chunk();
             c.from = i;
             c.to = j;
+            c.startMs = l.timeMs();
+            if (timing != null) {
+               long w0 = timing.wordStartMs(lineIdx, i);
+               if (w0 >= 0L) {
+                  c.startMs = w0;
+               }
+            }
+
+            if (this.chunks.isEmpty()) {
+               c.startMs = Math.min(c.startMs, l.timeMs());
+            }
 
             for (int k = i; k < j; k++) {
                c.widthPx = c.widthPx + Gfx.w(w[k], Gfx.LYRICS) + (k > i ? space : 0);

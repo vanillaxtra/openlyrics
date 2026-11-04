@@ -11,6 +11,7 @@ import dev.openlyrics.hud.Island;
 import dev.openlyrics.hud.SkyThumbs;
 import dev.openlyrics.hud.Theme;
 import dev.openlyrics.lyrics.Favorites;
+import dev.openlyrics.lyrics.LyricTiming;
 import dev.openlyrics.lyrics.LocalMedia;
 import dev.openlyrics.lyrics.NowPlaying;
 import dev.openlyrics.lyrics.SpotifyClient;
@@ -942,6 +943,30 @@ public class LyricsScreen extends Screen {
          -1,
          () -> c.lyricsLeadMs = Math.max(0, c.lyricsLeadMs - 25),
          () -> c.lyricsLeadMs = Math.min(1000, c.lyricsLeadMs + 25)
+      );
+      this.pickerRow(
+         "pace",
+         t("opt.lyricspace"),
+         t("ui.lyrics.pace.sub"),
+         c.lyricsPacePct + " %",
+         -1,
+         () -> {
+            c.lyricsPacePct = Math.max(50, c.lyricsPacePct - 10);
+            LyricTiming.invalidate();
+         },
+         () -> {
+            c.lyricsPacePct = Math.min(200, c.lyricsPacePct + 10);
+            LyricTiming.invalidate();
+         }
+      );
+      this.pickerRow(
+         "preroll",
+         t("opt.lyricschunkpreroll"),
+         t("ui.lyrics.chunkpreroll.sub"),
+         c.lyricsChunkPreRollMs + " ms",
+         -1,
+         () -> c.lyricsChunkPreRollMs = Math.max(0, c.lyricsChunkPreRollMs - 20),
+         () -> c.lyricsChunkPreRollMs = Math.min(400, c.lyricsChunkPreRollMs + 20)
       );
       this.toggleRow("beat", t("extras.beat"), t("ui.lyrics.beat.sub"), c.fxBeatPulse, v -> c.fxBeatPulse = v);
       this.toggleRow("intro", t("extras.intro"), t("ui.lyrics.intro.sub"), c.fxSongIntro, v -> c.fxSongIntro = v);

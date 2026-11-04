@@ -48,7 +48,17 @@ public final class Gfx {
       "bebasneue",
       "pacifico",
       "caveat",
-      "mojangles"
+      "mojangles",
+      "pressstart2p",
+      "pixelifysans",
+      "silkscreen",
+      "lilitaone",
+      "bungee",
+      "righteous",
+      "playfairdisplay",
+      "abrilfatface",
+      "dancingscript",
+      "permanentmarker"
    };
    public static final String[] FONT_NAMES = new String[]{
       "Poppins",
@@ -73,7 +83,17 @@ public final class Gfx {
       "Bebas Neue",
       "Pacifico",
       "Caveat",
-      "Mojangles"
+      "Mojangles",
+      "Press Start 2P",
+      "Pixelify Sans",
+      "Silkscreen",
+      "Lilita One",
+      "Bungee",
+      "Righteous",
+      "Playfair Display",
+      "Abril Fatface",
+      "Dancing Script",
+      "Permanent Marker"
    };
    private static final StyleSpriteSource[][] FD = new StyleSpriteSource[FONT_IDS.length][3];
    private static Gfx.Role cur;

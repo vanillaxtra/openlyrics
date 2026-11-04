@@ -8,14 +8,14 @@ import java.util.Locale;
 import java.util.Map;
 
 public class Config {
-   public int accent = 0;
+   public int accent = 2;
    public boolean rgbAccent = false;
    public boolean blur = true;
-   public boolean particles = false;
-   public boolean ripples = false;
+   public boolean particles = true;
+   public boolean ripples = true;
    public boolean sounds = true;
-   public int uiFont = 0;
-   public int lyricsFont = 0;
+   public int uiFont = 22;
+   public int lyricsFont = 22;
    public boolean fxMenuAnim = true;
    public int menuMode = 0;
    public int menuModeVer = 0;
@@ -31,15 +31,15 @@ public class Config {
    public boolean hideClouds = true;
    public String cloudsBefore = "";
    public boolean skyDay = true;
-   public boolean fxDayNight = false;
+   public boolean fxDayNight = true;
    public boolean fxConstellations = true;
    public boolean fxSkyMusic = true;
    public float skySpeed = 1.0F;
    public int skyPalette = -1;
-   public int trail = 0;
-   public boolean aura = false;
-   public boolean beatGlow = false;
-   public boolean skyShuffle = false;
+   public int trail = 1;
+   public boolean aura = true;
+   public boolean beatGlow = true;
+   public boolean skyShuffle = true;
    public float skyPattern = 1.0F;
    public float skyLively = 0.6F;
    public float skyBreath = 1.0F;
@@ -50,35 +50,37 @@ public class Config {
    public int customWeather = 2;
    public boolean customAurora = true;
    public boolean customStars = true;
-   public boolean customMoon = false;
+   public boolean customMoon = true;
    public boolean customShooting = true;
    public boolean lyricsSky = true;
    public boolean lyricsIsland = true;
    public boolean lyricsFollow = true;
-   public int lyricsStyle = 0;
-   public boolean lyricsViewLock = false;
-   public float lyricsSize = 1.6F;
+   public int lyricsStyle = 1;
+   public boolean lyricsViewLock = true;
+   public float lyricsSize = 2.0F;
    public float lyricsOpacity = 0.9F;
    public boolean lyricsGlow = true;
-   public float lyricsGlowStrength = 1.0F;
-   public int lyricsGlowColor = -1;
-   public int lyricsColor = -1;
-   public int lyricsAnim = 0;
-   public boolean lyricsUnderground = false;
+   public float lyricsGlowStrength = 0.5F;
+   public int lyricsGlowColor = 6;
+   public int lyricsColor = 1;
+   public int lyricsAnim = 2;
+   public boolean lyricsUnderground = true;
    public int lyricsOffsetMs = 0;
    public int lyricsLeadMs = 150;
-   public boolean fxBeatPulse = true;
+   public int lyricsChunkPreRollMs = 120;
+   public int lyricsPacePct = 100;
+   public boolean fxBeatPulse = false;
    public boolean fxSongIntro = true;
    public boolean translate = false;
    public String translateTo = "de";
    public boolean islandEnabled = true;
    public boolean showClock = true;
    public boolean showPing = true;
-   public boolean showFps = false;
+   public boolean showFps = true;
    public boolean albumCover = true;
    public boolean glassHotbar = true;
    public boolean fxStartup = true;
-   public int quality = 1;
+   public int quality = 2;
    public boolean fpsBoost = false;
    public String boostBefore = "";
    public boolean autoPerf = true;
@@ -93,7 +95,7 @@ public class Config {
    public String spotifyClientId = "";
    public int spotifyMode = 0;
    public boolean spotifyTutorialSeen = false;
-   public int styleVersion = 0;
+   public int styleVersion = 10;
 
    public void clamp() {
       if (this.styleVersion < 2 && this.spotifyClientId != null && !this.spotifyClientId.isBlank()) {
@@ -117,6 +119,65 @@ public class Config {
          this.autoPerf = true;
          this.targetFps = 0;
          this.styleVersion = 9;
+      }
+
+      if (this.styleVersion < 10) {
+         int moj = 0;
+         for (int i = 0; i < Gfx.FONT_IDS.length; i++) {
+            if ("mojangles".equals(Gfx.FONT_IDS[i])) {
+               moj = i;
+               break;
+            }
+         }
+         this.accent = 2;
+         this.blur = true;
+         this.particles = true;
+         this.ripples = true;
+         this.sounds = true;
+         this.uiFont = moj;
+         this.lyricsFont = moj;
+         this.fxMenuAnim = true;
+         if (this.sky < 0) {
+            this.sky = Math.max(0, this.lastSky);
+         }
+         this.skyShuffle = true;
+         this.fxDayNight = true;
+         this.customMoon = true;
+         this.customAurora = true;
+         this.customStars = true;
+         this.customShooting = true;
+         this.fxConstellations = true;
+         this.fxSkyMusic = true;
+         this.fxWeather = true;
+         this.fxAurora = true;
+         this.fxStars = true;
+         this.fxBeams = true;
+         this.fxSkyColor = true;
+         this.fxStartup = true;
+         this.trail = 1;
+         this.aura = true;
+         this.beatGlow = true;
+         this.lyricsSky = true;
+         this.lyricsIsland = true;
+         this.lyricsFollow = true;
+         this.lyricsStyle = 1;
+         this.lyricsViewLock = true;
+         this.lyricsSize = 2.0F;
+         this.lyricsOpacity = 0.9F;
+         this.lyricsGlow = true;
+         this.lyricsGlowStrength = 0.5F;
+         this.lyricsGlowColor = 6;
+         this.lyricsColor = 1;
+         this.lyricsAnim = 2;
+         this.lyricsUnderground = true;
+         this.fxBeatPulse = false;
+         this.fxSongIntro = true;
+         this.islandEnabled = true;
+         this.showClock = true;
+         this.showFps = true;
+         this.albumCover = true;
+         this.quality = 2;
+         this.styleVersion = 10;
       }
 
       this.spotifyMode = Math.max(0, Math.min(1, this.spotifyMode));
@@ -143,6 +204,8 @@ public class Config {
       this.skyPalette = Math.max(-1, Math.min(WorldSky.PALETTES.length - 1, this.skyPalette));
       this.lyricsOffsetMs = Math.max(-5000, Math.min(5000, this.lyricsOffsetMs));
       this.lyricsLeadMs = Math.max(0, Math.min(1000, this.lyricsLeadMs));
+      this.lyricsChunkPreRollMs = Math.max(0, Math.min(400, this.lyricsChunkPreRollMs));
+      this.lyricsPacePct = Math.max(50, Math.min(200, this.lyricsPacePct));
       this.lyricsStyle = Math.floorMod(this.lyricsStyle, 2);
       if (this.spotifyClientId == null) {
          this.spotifyClientId = "";

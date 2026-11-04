@@ -1,8 +1,10 @@
 package dev.openlyrics.sky;
 
 import dev.openlyrics.compat.Mc;
+import dev.openlyrics.OpenLyrics;
 import dev.openlyrics.config.Config;
 import dev.openlyrics.hud.Gfx;
+import dev.openlyrics.lyrics.LyricTiming;
 import dev.openlyrics.lyrics.NowPlaying;
 import dev.openlyrics.lyrics.SpotifyClient;
 import dev.openlyrics.util.AutoPerf;
@@ -46,6 +48,7 @@ public final class FloatWords {
    private static int prevSlot = -1;
    private static String[] chunks = new String[0];
    private static int[] chunkOf = new int[0];
+   private static long[] chunkStart = new long[0];
    private static final Map<String, Component> COMP = new HashMap<>();
    private static final Matrix4f M0 = new Matrix4f();
    private static final Matrix4f TMP = new Matrix4f();
@@ -112,28 +115,38 @@ public final class FloatWords {
          if (li != lastLine) {
             lastLine = li;
             lastChunk = -1;
-            buildChunks(words);
+            buildChunks(words, np, li, line);
          }
 
          if (chunks.length == 0) {
             return false;
          } else {
-            float wp = np.wordPosition(li, progress);
-            int aw;
-            if (wp >= 0.0F) {
-               aw = Math.min(words.length - 1, (int)Math.floor(wp));
-            } else {
-               long start = line.timeMs();
-               long end = Math.max(start + 1L, np.lineEnd(li));
-               aw = (int)Math.floor((float)(progress - start) / (float)(end - start) * words.length);
-               aw = Math.max(0, Math.min(words.length - 1, aw));
+            int pre = c.lyricsChunkPreRollMs;
+            int due = -1;
+            for (int ci = 0; ci < chunks.length; ci++) {
+               if (chunkStart[ci] - pre <= progress) {
+                  due = ci;
+               }
             }
 
-            int ac = Math.max(0, Math.min(chunks.length - 1, chunkOf[Math.min(aw, chunkOf.length - 1)]));
-            if (ac > lastChunk) {
-               // skip missed phrases; only spawn the one that should be on now
-               lastChunk = ac;
-               spawn(chunks[lastChunk], mc, c, cam, pt, now);
+            if (due > lastChunk) {
+               int from = lastChunk + 1;
+               if (due - lastChunk <= 2 && due > from && chunkStart[due] - chunkStart[from] <= 400L) {
+                  String joined = chunks[from];
+                  for (int ci = from + 1; ci <= due; ci++) {
+                     joined = joined + " " + chunks[ci];
+                  }
+
+                  spawn(joined, mc, c, cam, pt, now);
+               } else {
+                  spawn(chunks[due], mc, c, cam, pt, now);
+               }
+
+               if (OpenLyrics.LOG.isDebugEnabled()) {
+                  OpenLyrics.LOG.debug("lyrics chunk i={} start={} prog={} delta={}", due, chunkStart[due], progress, progress - chunkStart[due]);
+               }
+
+               lastChunk = due;
             }
 
             return true;
@@ -260,9 +273,11 @@ public final class FloatWords {
       return score;
    }
 
-   private static void buildChunks(String[] words) {
+   private static void buildChunks(String[] words, NowPlaying np, int li, NowPlaying.Line line) {
       List<String> list = new ArrayList<>();
+      List<Long> starts = new ArrayList<>();
       int[] map = new int[words.length];
+      LyricTiming timing = LyricTiming.of(np.lines);
       int i = 0;
 
       while (i < words.length) {
@@ -274,6 +289,18 @@ public final class FloatWords {
             int idx = list.size();
             String chunk = a;
             int used = 1;
+            long start = line.timeMs();
+            if (timing != null) {
+               long w0 = timing.wordStartMs(li, i);
+               if (w0 >= 0L) {
+                  start = w0;
+               }
+            }
+
+            if (idx == 0) {
+               start = Math.min(start, line.timeMs());
+            }
+
             if (a.length() <= 3 && i + 1 < words.length) {
                String b = clean(words[i + 1]);
                if (!b.isEmpty()) {
@@ -285,12 +312,17 @@ public final class FloatWords {
 
             map[i] = idx;
             list.add(chunk);
+            starts.add(start);
             i += used;
          }
       }
 
       chunks = list.toArray(new String[0]);
       chunkOf = map;
+      chunkStart = new long[starts.size()];
+      for (int k = 0; k < starts.size(); k++) {
+         chunkStart[k] = starts.get(k);
+      }
    }
 
    private static String clean(String s) {
