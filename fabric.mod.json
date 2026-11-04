@@ -18,10 +18,10 @@
   "depends": {
     "fabricloader": ">=0.17.3",
     "minecraft": "${minecraft_version}",
-    "java": ">=21",
+    "java": ">=${java_dep}",
     "fabric-api": "*"
   },
-  "accessWidener": "openlyrics.accesswidener",
+  "accessWidener": "${access_widener}",
   "mixins": [
     "openlyrics.mixins.json"
   ]

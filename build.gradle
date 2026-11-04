@@ -1,11 +1,6 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven { url = 'https://maven.fabricmc.net/' }
-    }
-    dependencies {
-        classpath "net.fabricmc:fabric-loom:${loom_version}"
-    }
+plugins {
+    id 'net.fabricmc.fabric-loom' apply false
+    id 'net.fabricmc.fabric-loom-remap' apply false
 }
 
 group = 'dev.openlyrics'
@@ -13,12 +8,20 @@ version = mod_version
 
 subprojects {
     def mc = name
-    def yarn = rootProject.property("yarn_${mc}")
+    def unobf = mc.startsWith('26.')
+    def artifact = rootProject.hasProperty("mc_artifact_${mc}") ? rootProject.property("mc_artifact_${mc}").toString() : mc
     def fapi = rootProject.property("fapi_${mc}")
-    def loader = rootProject.property('loader_version')
     def modVer = rootProject.property('mod_version')
+    def javaN = Integer.parseInt((unobf ? rootProject.property('java26_version') : rootProject.property('java_version')).toString())
+    def loader = unobf ? rootProject.property('loader26_version') : rootProject.property('loader_version')
+    def aw = unobf ? 'openlyrics-mojang.accesswidener' : 'openlyrics.accesswidener'
+    def srcDir = unobf ? rootProject.file('dev26') : rootProject.file('dev')
 
-    apply plugin: 'fabric-loom'
+    if (unobf) {
+        apply plugin: 'net.fabricmc.fabric-loom'
+    } else {
+        apply plugin: 'net.fabricmc.fabric-loom-remap'
+    }
 
     group = 'dev.openlyrics'
     version = "${modVer}+${mc}"
@@ -29,38 +32,53 @@ subprojects {
     }
 
     dependencies {
-        minecraft "com.mojang:minecraft:${mc}"
-        mappings "net.fabricmc:yarn:${yarn}:v2"
-        modImplementation "net.fabricmc.fabric-api:fabric-api:${fapi}"
-        modImplementation "net.fabricmc:fabric-loader:${loader}"
+        minecraft "com.mojang:minecraft:${artifact}"
+        if (unobf) {
+            implementation "net.fabricmc.fabric-api:fabric-api:${fapi}"
+            implementation "net.fabricmc:fabric-loader:${loader}"
+        } else {
+            mappings "net.fabricmc:yarn:${rootProject.property("yarn_${mc}")}:v2"
+            modImplementation "net.fabricmc.fabric-api:fabric-api:${fapi}"
+            modImplementation "net.fabricmc:fabric-loader:${loader}"
+        }
     }
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(Integer.parseInt(rootProject.property('java_version').toString()))
+            languageVersion = JavaLanguageVersion.of(javaN)
         }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = javaN
     }
 
     sourceSets.main {
         java {
-            srcDirs = [rootProject.file('dev')]
+            srcDirs = [srcDir]
+            if (unobf) {
+                srcDirs += rootProject.file("compat/${mc}")
+            }
         }
         resources {
             srcDirs = [rootProject.projectDir]
             include 'assets/**'
             include 'fabric.mod.json'
             include 'openlyrics.*'
+            include 'openlyrics-mojang.accesswidener'
             include 'META-INF/**'
         }
     }
 
     processResources {
         inputs.property 'version', project.version
-        inputs.property 'minecraft', mc
-        // ttf must stay binary — filteringCharset on this task rewrites 0x80+ as U+FFFD
+        inputs.property 'minecraft', artifact
         filesMatching('fabric.mod.json') {
             filteringCharset = 'UTF-8'
-            expand version: project.version, minecraft_version: mc
+            expand version: project.version,
+                    minecraft_version: artifact,
+                    java_dep: javaN,
+                    access_widener: aw
         }
         doFirst {
             def bad = []
@@ -79,18 +97,22 @@ subprojects {
         archiveVersion.set("${modVer}-${mc}")
     }
 
-    remapJar {
-        archiveBaseName.set('openlyrics')
-        archiveVersion.set("${modVer}-${mc}")
+    if (!unobf) {
+        remapJar {
+            archiveBaseName.set('openlyrics')
+            archiveVersion.set("${modVer}-${mc}")
+        }
     }
 }
 
-def remapJars = subprojects.collect { it.tasks.named('remapJar') }
+def packedJars = subprojects.collect { p ->
+    p.tasks.findByName('remapJar') ?: p.tasks.named('jar')
+}
 
 tasks.register('collectJars', Copy) {
     group = 'build'
     description = 'Copy each Minecraft version jar into build/libs'
-    dependsOn remapJars
+    dependsOn packedJars
     from subprojects.collect { it.layout.buildDirectory.dir('libs') }
     into layout.buildDirectory.dir('libs')
     include 'openlyrics-*-*.jar'
