@@ -57,9 +57,20 @@ subprojects {
     processResources {
         inputs.property 'version', project.version
         inputs.property 'minecraft', mc
-        filteringCharset = 'UTF-8'
+        // ttf must stay binary — filteringCharset on this task rewrites 0x80+ as U+FFFD
         filesMatching('fabric.mod.json') {
+            filteringCharset = 'UTF-8'
             expand version: project.version, minecraft_version: mc
+        }
+        doFirst {
+            def bad = []
+            fileTree(rootProject.file('assets/openlyrics/font')) { include '*.ttf' }.each { f ->
+                byte[] b = f.bytes
+                boolean magic = b.length >= 16 && b[0] == 0 && b[1] == 1 && b[2] == 0 && b[3] == 0
+                boolean tofu = b.length >= 11 && (b[8] & 0xff) == 0xEF && (b[9] & 0xff) == 0xBF && (b[10] & 0xff) == 0xBD
+                if (!magic || tofu) bad << f.name
+            }
+            if (!bad.isEmpty()) throw new GradleException('corrupt ttf (utf-8 replacement): ' + bad)
         }
     }
 
@@ -82,9 +93,12 @@ tasks.register('collectJars', Copy) {
     dependsOn remapJars
     from subprojects.collect { it.layout.buildDirectory.dir('libs') }
     into layout.buildDirectory.dir('libs')
-    include 'openlyrics-*.jar'
+    include 'openlyrics-*-*.jar'
     exclude '*-dev.jar', '*-sources.jar'
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    doFirst {
+        delete fileTree(layout.buildDirectory.dir('libs')).matching { include 'openlyrics-*.jar' }
+    }
 }
 
 tasks.register('build') {
