@@ -1,11 +1,11 @@
 # openlyrics
 
 <p align="center">
-  <img src="./showcase/mainshowcase.gif" alt="openlyrics" width="100%">
+  <img src="https://github.com/vanillaxtra/openlyrics/blob/main/showcase/mainshowcase.gif?raw=true" alt="openlyrics" width="100%">
 </p>
 
-![Skies](./showcase/skyshowcase.gif)
-![Floating lyrics](./showcase/anothershowcase.gif)
+![Skies](https://github.com/vanillaxtra/openlyrics/blob/main/showcase/skyshowcase.gif?raw=true)
+![Floating lyrics](https://github.com/vanillaxtra/openlyrics/blob/main/showcase/anothershowcase.gif?raw=true)
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/vanillaxtra/openlyrics)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-dbb18c?style=flat-square)](https://fabricmc.net/)
